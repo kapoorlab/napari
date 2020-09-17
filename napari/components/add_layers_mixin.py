@@ -4,6 +4,7 @@ import os
 from functools import lru_cache
 from logging import getLogger
 from typing import Any, Dict, List, Optional, Sequence, Set, Union
+
 import numpy as np
 
 from .. import layers
@@ -11,7 +12,7 @@ from ..layers.image._image_utils import guess_labels
 from ..layers.utils.stack_utils import split_channels
 from ..plugins.io import read_data_with_plugins
 from ..types import FullLayerData, LayerData
-from ..utils.colormaps import ensure_colormap_tuple
+from ..utils.colormaps import ensure_colormap
 from ..utils.misc import is_sequence
 
 logger = getLogger(__name__)
@@ -51,9 +52,6 @@ class AddLayersMixin:
         layer.events.cursor.connect(self._update_cursor)
         layer.events.cursor_size.connect(self._update_cursor_size)
         layer.events.data.connect(self._on_layers_change)
-        layer.dims.events.ndisplay.connect(self._on_layers_change)
-        layer.dims.events.order.connect(self._on_layers_change)
-        layer.dims.events.range.connect(self._on_layers_change)
         self.layers.append(layer)
         self._update_layers(layers=[layer])
 
@@ -104,7 +102,7 @@ class AddLayersMixin:
             `True`. If `False` the image is interpreted as a luminance image.
             If a list then must be same length as the axis that is being
             expanded as channels.
-        colormap : str, vispy.Color.Colormap, tuple, dict, list
+        colormap : str, napari.utils.Colormap, tuple, dict, list
             Colormaps to use for luminance images. If a string must be the name
             of a supported colormap from vispy or matplotlib. If a tuple the
             first value must be a string to assign as a name to a colormap and
@@ -178,14 +176,14 @@ class AddLayersMixin:
         """
 
         if colormap is not None:
-            # standardize colormap argument(s) to strings, and make sure they
+            # standardize colormap argument(s) to Colormaps, and make sure they
             # are in AVAILABLE_COLORMAPS.  This will raise one of many various
             # errors if the colormap argument is invalid.  See
-            # ensure_colormap_tuple for details
+            # ensure_colormap for details
             if isinstance(colormap, list):
-                colormap = [ensure_colormap_tuple(c)[0] for c in colormap]
+                colormap = [ensure_colormap(c) for c in colormap]
             else:
-                colormap, _ = ensure_colormap_tuple(colormap)
+                colormap = ensure_colormap(colormap)
 
         # doing this here for IDE/console autocompletion in add_image function.
         kwargs = {
@@ -290,9 +288,8 @@ class AddLayersMixin:
         edge_color_cycle : np.ndarray, list
             Cycle of colors (provided as string name, RGB, or RGBA) to map to edge_color if a
             categorical attribute is used color the vectors.
-        edge_colormap : str, vispy.color.colormap.Colormap
+        edge_colormap : str, napari.utils.Colormap
             Colormap to set edge_color if a continuous attribute is used to set face_color.
-            See vispy docs for details: http://vispy.org/color.html#vispy.color.Colormap
         edge_contrast_limits : None, (float, float)
             clims for mapping the property to a color map. These are the min and max value
             of the specified property that are mapped to 0 and 1, respectively.
@@ -303,9 +300,8 @@ class AddLayersMixin:
         face_color_cycle : np.ndarray, list
             Cycle of colors (provided as string name, RGB, or RGBA) to map to face_color if a
             categorical attribute is used color the vectors.
-        face_colormap : str, vispy.color.colormap.Colormap
+        face_colormap : str, napari.utils.Colormap
             Colormap to set face_color if a continuous attribute is used to set face_color.
-            See vispy docs for details: http://vispy.org/color.html#vispy.color.Colormap
         face_contrast_limits : None, (float, float)
             clims for mapping the property to a color map. These are the min and max value
             of the specified property that are mapped to 0 and 1, respectively.
@@ -532,9 +528,8 @@ class AddLayersMixin:
         edge_color_cycle : np.ndarray, list
             Cycle of colors (provided as string name, RGB, or RGBA) to map to edge_color if a
             categorical attribute is used color the vectors.
-        edge_colormap : str, vispy.color.colormap.Colormap
+        edge_colormap : str, napari.utils.Colormap
             Colormap to set edge_color if a continuous attribute is used to set face_color.
-            See vispy docs for details: http://vispy.org/color.html#vispy.color.Colormap
         edge_contrast_limits : None, (float, float)
             clims for mapping the property to a color map. These are the min and max value
             of the specified property that are mapped to 0 and 1, respectively.
@@ -549,9 +544,8 @@ class AddLayersMixin:
         face_color_cycle : np.ndarray, list
             Cycle of colors (provided as string name, RGB, or RGBA) to map to face_color if a
             categorical attribute is used color the vectors.
-        face_colormap : str, vispy.color.colormap.Colormap
+        face_colormap : str, napari.utils.Colormap
             Colormap to set face_color if a continuous attribute is used to set face_color.
-            See vispy docs for details: http://vispy.org/color.html#vispy.color.Colormap
         face_contrast_limits : None, (float, float)
             clims for mapping the property to a color map. These are the min and max value
             of the specified property that are mapped to 0 and 1, respectively.
@@ -642,7 +636,7 @@ class AddLayersMixin:
             of the mesh triangles. The third element is the (K0, ..., KL, N)
             array of values used to color vertices where the additional L
             dimensions are used to color the same mesh with different values.
-        colormap : str, vispy.Color.Colormap, tuple, dict
+        colormap : str, napari.utils.Colormap, tuple, dict
             Colormap to use for luminance images. If a string must be the name
             of a supported colormap from vispy or matplotlib. If a tuple the
             first value must be a string to assign as a name to a colormap and
@@ -734,9 +728,8 @@ class AddLayersMixin:
         edge_color_cycle : np.ndarray, list
             Cycle of colors (provided as string name, RGB, or RGBA) to map to edge_color if a
             categorical attribute is used color the vectors.
-        edge_colormap : str, vispy.color.colormap.Colormap
+        edge_colormap : str, napari.utils.Colormap
             Colormap to set vector color if a continuous attribute is used to set edge_color.
-            See vispy docs for details: http://vispy.org/color.html#vispy.color.Colormap
         edge_contrast_limits : None, (float, float)
             clims for mapping the property to a color map. These are the min and max value
             of the specified property that are mapped to 0 and 1, respectively.
@@ -784,9 +777,112 @@ class AddLayersMixin:
         self.add_layer(layer)
         return layer
 
+    def add_tracks(
+        self,
+        data,
+        *,
+        properties=None,
+        edge_width=2,
+        tail_length=30,
+        n_dimensional=True,
+        name=None,
+        metadata=None,
+        scale=None,
+        translate=None,
+        opacity=1,
+        blending='additive',
+        visible=True,
+        colormap='viridis',
+        color_by='ID',
+        colormaps_dict=None,
+    ) -> layers.Tracks:
+        """Add a tracks layer to the layers list.
+
+        Parameters
+        ----------
+        data : list
+            list of (NxD) arrays of the format: time, x, y, (z), ....
+        properties : list (optional)
+            list of dictionaries of track properties, e.g.:
+
+            [{'ID': 0,
+              'parent': [],
+              'root': 0,
+              'states': [], ...}, ...]
+
+            List needs to be the same length as data, and all items need to
+            contain the same dictionary keys etc. If no properties are provided,
+            the layer autogenerates the ID property based on the track index in
+            the list. Properties can have any numeric type (scalar, array).
+            Importantly, 'parent' is a special property which defines a list of
+            track IDs that are parents of the track. This can be one (the track
+            has one parent, and the parent has >=1 child) in the case of track
+            splitting, or more than one (the track has multiple parents, but
+            only one child) in the case of track merging.
+        color_by: str
+            track property (from property keys) to color vertices by
+        edge_width : float
+            Width for all vectors in pixels.
+        tail_length : float
+            Length of the projection of time as a tail, in units of time.
+        colormap : str
+            Default colormap to use to set vertex colors. Specialized colormaps,
+            relating to specified properties can be passed to the layer via
+            colormaps_dict.
+        colomaps_dict : dict
+            dictionary list of colormap objects to use for coloring by track
+            properties. when coloring vertices, the layer looks in this
+            dictionary to find a matching colormap. the value is any object
+            with a __getitem__, that returns RGBA values that can be mapped to
+            the property
+        name : str
+            Name of the layer.
+        metadata : dict
+            Layer metadata.
+        scale : tuple of float
+            Scale factors for the layer.
+        translate : tuple of float
+            Translation values for the layer.
+        opacity : float
+            Opacity of the layer visual, between 0.0 and 1.0.
+        blending : str
+            One of a list of preset blending modes that determines how RGB and
+            alpha values of the layer visual get mixed. Allowed values are
+            {'opaque', 'translucent', and 'additive'}.
+        visible : bool
+            Whether the layer visual is currently being displayed.
+
+
+        Returns
+        -------
+        layer : :class:`napari.layers.Tracks`
+            The newly-created tracks layer.
+
+        """
+        layer = layers.Tracks(
+            data,
+            properties=properties,
+            edge_width=edge_width,
+            tail_length=tail_length,
+            n_dimensional=n_dimensional,
+            name=name,
+            metadata=metadata,
+            scale=scale,
+            translate=translate,
+            opacity=opacity,
+            blending=blending,
+            visible=visible,
+            colormap=colormap,
+            color_by=color_by,
+            colormaps_dict=colormaps_dict,
+        )
+        self.add_layer(layer)
+        return layer
+
     def open(
         self,
         path: Union[str, Sequence[str]],
+        *,
         stack: bool = False,
         plugin: Optional[str] = None,
         layer_type: Optional[str] = None,
